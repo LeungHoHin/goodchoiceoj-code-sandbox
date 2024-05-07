@@ -82,12 +82,13 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
 
         //3. 创建容器，把文件复制到容器内
         //获取默认的docker client
+        // 获取默认的 Docker Client
         DockerClient dockerClient = DockerClientBuilder.getInstance().build();
 
-        //拉取镜像
-        String jdkImage = "openjdk:8-alpine";
+        // 拉取镜像
+        String image = "openjdk:8-alpine";
         if (FIRST_INIT) {
-            PullImageCmd pullImageCmd = dockerClient.pullImageCmd(jdkImage);
+            PullImageCmd pullImageCmd = dockerClient.pullImageCmd(image);
             PullImageResultCallback pullImageResultCallback = new PullImageResultCallback() {
                 @Override
                 public void onNext(PullResponseItem item) {
@@ -95,9 +96,10 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
                     super.onNext(item);
                 }
             };
-
             try {
-                pullImageCmd.exec(pullImageResultCallback).awaitCompletion();
+                pullImageCmd
+                        .exec(pullImageResultCallback)
+                        .awaitCompletion();
             } catch (InterruptedException e) {
                 System.out.println("拉取镜像异常");
                 throw new RuntimeException(e);
@@ -106,17 +108,17 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
 
         System.out.println("下载完成");
 
+        // 创建容器
 
-        //创建容器的配置
+        CreateContainerCmd containerCmd = dockerClient.createContainerCmd(image);
         HostConfig hostConfig = new HostConfig();
         hostConfig.withMemory(100 * 1000 * 1000L);
-        hostConfig.withCpuCount(1L);
         hostConfig.withMemorySwap(0L);
+        hostConfig.withCpuCount(1L);
+        hostConfig.withSecurityOpts(Arrays.asList("seccomp=安全管理配置字符串"));
         hostConfig.setBinds(new Bind(userCodeParentPath, new Volume("/app")));
-//        hostConfig.withSecurityOpts(Arrays.asList("seccomp=安全管理配置字符串"));
-        //创建容器
-        CreateContainerCmd createConfigCmd = dockerClient.createContainerCmd(jdkImage);
-        CreateContainerResponse createContainerResponse = createConfigCmd.withHostConfig(hostConfig)
+        CreateContainerResponse createContainerResponse = containerCmd
+                .withHostConfig(hostConfig)
                 .withNetworkDisabled(true)
                 .withReadonlyRootfs(true)
                 .withAttachStdin(true)
@@ -124,14 +126,15 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
                 .withAttachStdout(true)
                 .withTty(true)
                 .exec();
-        System.out.println("createContainerResponse = " + createContainerResponse);
+        System.out.println(createContainerResponse);
         String containerId = createContainerResponse.getId();
 
-        //启动容器
-        dockerClient.startContainerCmd(containerId);
+        // 启动容器
+        dockerClient.startContainerCmd(containerId).exec();
+
         // docker exec keen_blackwell java -cp /app Main 1 3
         // 执行命令并获取结果
-        ArrayList<ExecuteMessage> executeMessagesList = new ArrayList<>();
+        List<ExecuteMessage> executeMessageList = new ArrayList<>();
         for (String inputArgs : inputList) {
             StopWatch stopWatch = new StopWatch();
             String[] inputArgsArray = inputArgs.split(" ");
@@ -145,7 +148,6 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
             System.out.println("创建执行命令：" + execCreateCmdResponse);
 
             ExecuteMessage executeMessage = new ExecuteMessage();
-
             final String[] message = {null};
             final String[] errorMessage = {null};
             long time = 0L;
@@ -182,17 +184,18 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
 
                 @Override
                 public void onNext(Statistics statistics) {
-                    System.out.println("内存占用：" + statistics.getMemoryStats().getUsage());
                     maxMemory[0] = Math.max(statistics.getMemoryStats().getUsage(), maxMemory[0]);
+                }
+
+                @Override
+                public void close() throws IOException {
+
                 }
 
                 @Override
                 public void onStart(Closeable closeable) {
 
                 }
-
-                @Override
-                public void close() throws IOException {}
 
                 @Override
                 public void onError(Throwable throwable) {
@@ -221,14 +224,14 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
             executeMessage.setErrorMessage(errorMessage[0]);
             executeMessage.setTime(time);
             executeMessage.setMemory(maxMemory[0]);
-            executeMessagesList.add(executeMessage);
+            executeMessageList.add(executeMessage);
         }
         // 4、封装结果，跟原生实现方式完全一致
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         List<String> outputList = new ArrayList<>();
         // 取用时最大值，便于判断是否超时
         long maxTime = 0;
-        for (ExecuteMessage executeMessage : executeMessagesList) {
+        for (ExecuteMessage executeMessage : executeMessageList) {
             String errorMessage = executeMessage.getErrorMessage();
             if (StrUtil.isNotBlank(errorMessage)) {
                 executeCodeResponse.setMessage(errorMessage);
@@ -243,7 +246,7 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
             }
         }
         // 正常运行完成
-        if (outputList.size() == executeMessagesList.size()) {
+        if (outputList.size() == executeMessageList.size()) {
             executeCodeResponse.setStatus(1);
         }
         executeCodeResponse.setOutputList(outputList);

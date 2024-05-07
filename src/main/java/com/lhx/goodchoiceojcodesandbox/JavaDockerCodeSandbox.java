@@ -11,6 +11,7 @@ import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeRequest;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeResponse;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteMessage;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
 import java.io.Closeable;
@@ -22,21 +23,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+
+@Component
 public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
-    private static final long TIME_OUT = 5000L;
+    private static final long TIME_OUT = 1000000L;
 
     private static final Boolean FIRST_INIT = true;
 
     public static void main(String[] args) {
-        DeprecatedJavaNativeCodeSandbox javaNativeCodeSandbox = new DeprecatedJavaNativeCodeSandbox();
+        JavaDockerCodeSandbox javaNativeCodeSandbox = new JavaDockerCodeSandbox();
         ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
         executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
-        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
+        String code = ResourceUtil.readStr("testCode/Main.java", StandardCharsets.UTF_8);
+
         executeCodeRequest.setCode(code);
         executeCodeRequest.setLanguage("java");
         ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
-        System.out.println(executeCodeResponse);
+        System.out.println("这里：" + executeCodeResponse);
     }
 
     @Override
@@ -144,7 +148,6 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
                 @Override
                 public void onNext(Statistics statistics) {
-                    System.out.println("内存占用：" + statistics.getMemoryStats().getUsage());
                     maxMemory[0] = Math.max(statistics.getMemoryStats().getUsage(), maxMemory[0]);
                 }
 
@@ -173,7 +176,7 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
                 stopWatch.start();
                 dockerClient.execStartCmd(execId)
                         .exec(execStartResultCallback)
-                        .awaitCompletion(TIME_OUT, TimeUnit.MICROSECONDS);
+                        .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
                 stopWatch.stop();
                 time = stopWatch.getLastTaskTimeMillis();
                 statsCmd.close();
