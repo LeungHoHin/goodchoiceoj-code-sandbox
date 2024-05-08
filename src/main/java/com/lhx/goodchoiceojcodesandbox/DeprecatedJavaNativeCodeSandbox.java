@@ -8,6 +8,7 @@ import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeRequest;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeResponse;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteMessage;
 import com.lhx.goodchoiceojcodesandbox.model.JudgeInfo;
+import com.lhx.goodchoiceojcodesandbox.model.enums.CodeSandboxRunStatusEnum;
 import com.lhx.goodchoiceojcodesandbox.utils.ProcessUtils;
 
 import java.io.File;
@@ -115,7 +116,7 @@ public class DeprecatedJavaNativeCodeSandbox implements CodeSandbox {
             if (StrUtil.isNotBlank(errorMessage)) {
                 executeCodeResponse.setMessage(errorMessage);
                 //用户提交的代码执行中存在错误
-                executeCodeResponse.setStatus(3);
+                executeCodeResponse.setStatus(CodeSandboxRunStatusEnum.CODE_ERROR.getValue());
                 break;
             }
             outputList.add(executeMessage.getMessage());
@@ -126,7 +127,7 @@ public class DeprecatedJavaNativeCodeSandbox implements CodeSandbox {
         }
         //正常运行完成
         if (outputList.size() == executeMessageList.size()) {
-            executeCodeResponse.setStatus(1);
+            executeCodeResponse.setStatus(CodeSandboxRunStatusEnum.NORMAL.getValue());
         }
         executeCodeResponse.setOutputList(outputList);
         JudgeInfo judgeInfo = new JudgeInfo();
@@ -154,7 +155,7 @@ public class DeprecatedJavaNativeCodeSandbox implements CodeSandbox {
         executeCodeResponse.setOutputList(new ArrayList<>());
         executeCodeResponse.setMessage(e.getMessage());
         //表示代码沙箱错误
-        executeCodeResponse.setStatus(2);
+        executeCodeResponse.setStatus(CodeSandboxRunStatusEnum.SANDBOX_ERROR.getValue());
         executeCodeResponse.setJudgeInfo(new JudgeInfo());
         return executeCodeResponse;
     }

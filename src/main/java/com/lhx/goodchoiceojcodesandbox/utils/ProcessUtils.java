@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class ProcessUtils {
     public static ExecuteMessage runProcessAndGetMessage(Process runProcess, String opName) {
@@ -58,9 +59,9 @@ public class ProcessUtils {
                 while ((errorCompileOutputLine = errorBufferedReader.readLine()) != null) {
                     errorOutputStringList.add(errorCompileOutputLine);
                 }
-                if (!ObjectUtils.isEmpty(executeMessage)){
-                    executeMessage.setErrorMessage(StringUtils.join(errorOutputStringList, "\n"));
-                }
+//                if (!ObjectUtils.isEmpty(executeMessage)){
+//                    executeMessage.setErrorMessage(StringUtils.join(errorOutputStringList));
+//                }
             }
             stopWatch.stop();
             executeMessage.setTime(stopWatch.getLastTaskTimeMillis());

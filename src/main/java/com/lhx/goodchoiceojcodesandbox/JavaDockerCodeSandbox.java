@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
-    private static final long TIME_OUT = 1000000L;
+    private static final long TIME_OUT = 10000L;
 
     private static final Boolean FIRST_INIT = true;
 
@@ -179,6 +179,7 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
                         .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
                 stopWatch.stop();
                 time = stopWatch.getLastTaskTimeMillis();
+                TimeUnit.MILLISECONDS.sleep(100);
                 statsCmd.close();
             } catch (InterruptedException e) {
                 System.out.println("程序执行异常");
