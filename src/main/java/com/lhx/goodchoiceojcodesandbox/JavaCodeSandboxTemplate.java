@@ -48,8 +48,13 @@ public class JavaCodeSandboxTemplate implements CodeSandbox {
             compileFailedResponse.setStatus(CodeSandboxRunStatusEnum.COMPILE_FAILED.getValue());
             JudgeInfo judgeInfo = new JudgeInfo();
             judgeInfo.setMemory(0L);
+            judgeInfo.setMessage("编译错误");
             judgeInfo.setTime(0L);
             compileFailedResponse.setJudgeInfo(judgeInfo);
+            boolean isDeleted = deleteFile(userCodeFile);
+            if (!isDeleted) {
+                log.error("用户代码执行完后删除失败", userCodeFile.getAbsolutePath());
+            }
             return compileFailedResponse;
         }
 

@@ -113,7 +113,7 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
 
         CreateContainerCmd containerCmd = dockerClient.createContainerCmd(image);
         HostConfig hostConfig = new HostConfig();
-        hostConfig.withMemory(100 * 1000 * 1000L);
+        hostConfig.withMemory(100 * 1024 * 1024L);
         hostConfig.withMemorySwap(0L);
         hostConfig.withCpuCount(1L);
         hostConfig.withSecurityOpts(Arrays.asList("seccomp=安全管理配置字符串"));
