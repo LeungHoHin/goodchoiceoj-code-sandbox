@@ -39,16 +39,16 @@ public class DeprecatedJavaNativeCodeSandbox implements CodeSandbox {
         WORD_TREE.addWords(blackList);
     }
 
-    public static void main(String[] args) {
-        DeprecatedJavaNativeCodeSandbox javaNativeCodeSandbox = new DeprecatedJavaNativeCodeSandbox();
-        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
-        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
-        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
-        executeCodeRequest.setCode(code);
-        executeCodeRequest.setLanguage("java");
-        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
-        System.out.println(executeCodeResponse);
-    }
+//    public static void main(String[] args) {
+//        DeprecatedJavaNativeCodeSandbox javaNativeCodeSandbox = new DeprecatedJavaNativeCodeSandbox();
+//        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
+//        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
+//        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
+//        executeCodeRequest.setCode(code);
+//        executeCodeRequest.setLanguage("java");
+//        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
+//        System.out.println(executeCodeResponse);
+//    }
 
 
     @Override

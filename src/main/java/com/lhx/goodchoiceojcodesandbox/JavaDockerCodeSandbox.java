@@ -11,6 +11,7 @@ import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeRequest;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteCodeResponse;
 import com.lhx.goodchoiceojcodesandbox.model.ExecuteMessage;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
@@ -21,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 
 @Component
@@ -31,24 +32,22 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
     private static final Boolean FIRST_INIT = true;
 
-    public static void main(String[] args) {
-        JavaDockerCodeSandbox javaNativeCodeSandbox = new JavaDockerCodeSandbox();
-        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
-        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
-        String code = ResourceUtil.readStr("testCode/Main.java", StandardCharsets.UTF_8);
-
-        executeCodeRequest.setCode(code);
-        executeCodeRequest.setLanguage("java");
-        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
-        System.out.println("这里：" + executeCodeResponse);
-    }
+//    public static void main(String[] args) {
+//        JavaDockerCodeSandbox javaNativeCodeSandbox = new JavaDockerCodeSandbox();
+//        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
+//        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
+//        String code = ResourceUtil.readStr("testCode/Main.java", StandardCharsets.UTF_8);
+//
+//        executeCodeRequest.setCode(code);
+//        executeCodeRequest.setLanguage("java");
+//        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
+//    }
 
     @Override
     public List<ExecuteMessage> runFile(File userCodeFile, List<String> inputList) {
         String userCodeParentPath = userCodeFile.getParentFile().getAbsolutePath();
         // 获取默认的 Docker Client
         DockerClient dockerClient = DockerClientBuilder.getInstance().build();
-
         // 拉取镜像
         String image = "openjdk:8-alpine";
         if (FIRST_INIT) {
@@ -76,7 +75,7 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
         CreateContainerCmd containerCmd = dockerClient.createContainerCmd(image);
         HostConfig hostConfig = new HostConfig();
-        hostConfig.withMemory(100 * 1000 * 1000L);
+        hostConfig.withMemory(500 * 1024 * 1024L);
         hostConfig.withMemorySwap(0L);
         hostConfig.withCpuCount(1L);
 //        hostConfig.withSecurityOpts(Arrays.asList("seccomp=安全管理配置字符串"));
@@ -114,7 +113,6 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
             ExecuteMessage executeMessage = new ExecuteMessage();
             final String[] message = {null};
             final String[] errorMessage = {null};
-            long time = 0L;
             // 判断是否超时
             final boolean[] timeout = {true};
             String execId = execCreateCmdResponse.getId();
@@ -132,8 +130,12 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
                     if (StreamType.STDERR.equals(streamType)) {
                         errorMessage[0] = new String(frame.getPayload());
                         System.out.println("输出错误结果：" + errorMessage[0]);
-                    } else {
-                        message[0] = new String(frame.getPayload());
+                    } else if (message[0] == null) {//else if (!(Arrays.toString(frame.getPayload()).equals("[10]"))) {
+                        String result = new String(frame.getPayload());
+                        if (!result.endsWith("\n")) {
+                            result = result + "\n";
+                        }
+                        message[0] = result;
                         System.out.println("输出结果：" + message[0]);
                     }
                     super.onNext(frame);
@@ -171,24 +173,46 @@ public class JavaDockerCodeSandbox extends JavaCodeSandboxTemplate {
 
                 }
             });
-            statsCmd.exec(statisticsResultCallback);
+            long time = 0L;
+            final ExecutorService exec = Executors.newFixedThreadPool(1);
+            Callable<Long> call = new Callable<Long>() {
+                @Override
+                public Long call() throws Exception {
+                    long time = 0L;
+                    statsCmd.exec(statisticsResultCallback);
+                    try {
+                        stopWatch.start();
+                        //使得docker容器开始运行代码
+                        dockerClient.execStartCmd(execId)
+                                .exec(execStartResultCallback)
+                                .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
+                        stopWatch.stop();
+                        time = stopWatch.getLastTaskTimeMillis();
+                        statsCmd.close();
+                    } catch (InterruptedException e) {
+                        System.out.println("程序执行异常");
+                        throw new RuntimeException(e);
+                    }
+                    return time;
+                }
+            };
             try {
-                stopWatch.start();
-                dockerClient.execStartCmd(execId)
-                        .exec(execStartResultCallback)
-                        .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
-                stopWatch.stop();
-                time = stopWatch.getLastTaskTimeMillis();
-                TimeUnit.MILLISECONDS.sleep(100);
-                statsCmd.close();
-            } catch (InterruptedException e) {
-                System.out.println("程序执行异常");
-                throw new RuntimeException(e);
+                Future<Long> future = exec.submit(call);
+                time = future.get(TIME_OUT, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                System.out.println("执行代码超时！");
+            }
+            //如果超时，把执行信息列表上一个时间设置为一个必定超时的数字，并且退出循环
+            if (time == 0L) {
+                ExecuteMessage timeOutExecuteMessage = executeMessageList.get(executeMessageList.size() - 1);
+                timeOutExecuteMessage.setTime(100000L);
+                executeMessageList.set(executeMessageList.size() - 1,timeOutExecuteMessage);
+                break;
             }
             executeMessage.setMessage(message[0]);
             executeMessage.setErrorMessage(errorMessage[0]);
-            executeMessage.setTime(time);
             executeMessage.setMemory(maxMemory[0]);
+            executeMessage.setTime(time);
             executeMessageList.add(executeMessage);
         }
         return executeMessageList;

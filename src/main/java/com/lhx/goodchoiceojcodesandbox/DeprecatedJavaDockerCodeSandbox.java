@@ -40,16 +40,16 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
 
     private static final Boolean FIRST_INIT = true;
 
-    public static void main(String[] args) {
-        DeprecatedJavaDockerCodeSandbox javaNativeCodeSandbox = new DeprecatedJavaDockerCodeSandbox();
-        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
-        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
-        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
-        executeCodeRequest.setCode(code);
-        executeCodeRequest.setLanguage("java");
-        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
-        System.out.println(executeCodeResponse);
-    }
+//    public static void main(String[] args) {
+//        DeprecatedJavaDockerCodeSandbox javaNativeCodeSandbox = new DeprecatedJavaDockerCodeSandbox();
+//        ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
+//        executeCodeRequest.setInputList(Arrays.asList("1 2", "1 3"));
+//        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
+//        executeCodeRequest.setCode(code);
+//        executeCodeRequest.setLanguage("java");
+//        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandbox.executeCode(executeCodeRequest);
+//        System.out.println(executeCodeResponse);
+//    }
 
 
     @Override
@@ -216,6 +216,7 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
                         .awaitCompletion(TIME_OUT, TimeUnit.MICROSECONDS);
                 stopWatch.stop();
                 time = stopWatch.getLastTaskTimeMillis();
+                System.out.println("程序运行时间：" + time);
                 statsCmd.close();
             } catch (InterruptedException e) {
                 System.out.println("程序执行异常");
@@ -253,7 +254,6 @@ public class DeprecatedJavaDockerCodeSandbox implements CodeSandbox {
         executeCodeResponse.setOutputList(outputList);
         JudgeInfo judgeInfo = new JudgeInfo();
         judgeInfo.setTime(maxTime);
-
         executeCodeResponse.setJudgeInfo(judgeInfo);
 
 //        5. 文件清理

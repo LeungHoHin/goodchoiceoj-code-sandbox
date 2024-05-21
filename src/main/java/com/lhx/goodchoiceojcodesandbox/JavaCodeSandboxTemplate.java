@@ -13,8 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 @Slf4j
 public class JavaCodeSandboxTemplate implements CodeSandbox {
@@ -59,6 +61,20 @@ public class JavaCodeSandboxTemplate implements CodeSandbox {
         }
 
         //3. 执行代码，得到输出结果
+//        List<ExecuteMessage> executeMessagesList = null;
+//        final ExecutorService exec = Executors.newFixedThreadPool(1);
+//        Callable<List<ExecuteMessage>> call = new Callable<List<ExecuteMessage>>() {
+//            @Override
+//            public List<ExecuteMessage> call() throws Exception {
+//                return runFile(userCodeFile, inputList);
+//            }
+//        };
+//        try {
+//            Future<List<ExecuteMessage>> future = exec.submit(call);
+//            executeMessagesList = future.get(5, TimeUnit.SECONDS);
+//        }catch (Exception e){
+//            System.out.println("执行代码超时");
+//        }
         List<ExecuteMessage> executeMessagesList = runFile(userCodeFile, inputList);
 
         //4. 收集整理输出结果
@@ -219,6 +235,7 @@ public class JavaCodeSandboxTemplate implements CodeSandbox {
         executeCodeResponse.setJudgeInfo(new JudgeInfo());
         return executeCodeResponse;
     }
+
 }
 
 
